@@ -1,4 +1,4 @@
 PIC32MZ 
 
 UART bootloader
-+ Live Update
+(+ Live Update)
