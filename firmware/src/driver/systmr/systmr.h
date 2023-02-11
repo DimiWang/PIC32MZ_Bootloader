@@ -12,9 +12,6 @@
 #include "xc.h"
 
 
-#ifdef __cplusplus  // Provide C++ Compatibility
-    extern "C" {
-#endif
 #include "typedef_global.h"     
 
         
@@ -114,9 +111,6 @@ uint32_t systmrB_elapsed(TimerB num);
 
 
 
-#ifdef __cplusplus
-}
-#endif
 
 
 

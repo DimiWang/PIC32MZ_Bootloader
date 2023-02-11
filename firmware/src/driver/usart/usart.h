@@ -12,9 +12,6 @@
 
 #include "xc.h"
 
-#ifdef __cplusplus  // Provide C++ Compatibility
-    extern "C" {
-#endif
 #include "typedef_global.h"     
 
 typedef enum {
@@ -157,12 +154,7 @@ void uart_clear_rx_flag(Uart num);
 * ...tbd...
 */
 void uart_clear_tx_flag(Uart num);
-          
-        
-        
-#ifdef __cplusplus
-}
-#endif
+                      
 
 
 

@@ -21,10 +21,6 @@
      */
 
 
-#ifdef __cplusplus
-    extern "C" {
-#endif
-
 #include "system.h"
 #include "typedef_global.h"        
         
@@ -40,9 +36,6 @@ void BOOTLOADER_ExecuteLiveUpdater();
 bool BOOTLOADER_CheckNeedUpdate();
 bool BOOTLOADER_AppExist();
 
-#ifdef  __cplusplus
-}
-#endif
 
 #endif
 

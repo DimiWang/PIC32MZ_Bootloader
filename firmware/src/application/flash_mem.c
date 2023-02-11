@@ -10,9 +10,6 @@
 #include "device_config.h"
 #include "wdt.h"
 
-
-
-
 const uint32_t flashmem_crc32_tab[] = {
     0x00000000, 0x77073096, 0xee0e612c, 0x990951ba, 0x076dc419, 0x706af48f,
     0xe963a535, 0x9e6495a3, 0x0edb8832, 0x79dcb8a4, 0xe0d5e91e, 0x97d2d988,
@@ -56,14 +53,10 @@ const uint32_t flashmem_crc32_tab[] = {
     0x40df0b66, 0x37d83bf0, 0xa9bcae53, 0xdebb9ec5, 0x47b2cf7f, 0x30b5ffe9,
     0xbdbdf21c, 0xcabac28a, 0x53b39330, 0x24b4a3a6, 0xbad03605, 0xcdd70693,
     0x54de5729, 0x23d967bf, 0xb3667a2e, 0xc4614ab8, 0x5d681b02, 0x2a6f2b94,
-    0xb40bbe37, 0xc30c8ea1, 0x5a05df1b, 0x2d02ef8d
-};
+    0xb40bbe37, 0xc30c8ea1, 0x5a05df1b, 0x2d02ef8d};
 
-
-
-
-
-uint32_t calculateFlashMemCrc(const uint8_t *buf, size_t size) {
+uint32_t calculateFlashMemCrc(const uint8_t *buf, size_t size)
+{
     const uint8_t *p = buf;
     uint32_t crc;
 
@@ -73,82 +66,91 @@ uint32_t calculateFlashMemCrc(const uint8_t *buf, size_t size) {
     return crc ^ ~0U;
 }
 
-uint32_t FLASH_CalculateCrc(FlashMemType flashType) {
-    switch (flashType) {
+uint32_t FLASH_CalculateCrc(FlashMemType flashType)
+{
+    switch (flashType)
+    {
 
-        case FLASH_MEM1:
-            return calculateFlashMemCrc((uint8_t*) MAIN_APP_ADDR, APP_SIZE_BYTES);
-            break;
+    case FLASH_MEM1:
+        return calculateFlashMemCrc((uint8_t *)MAIN_APP_ADDR, APP_SIZE_BYTES);
+        break;
 
-        case FLASH_MEM2:
-            return calculateFlashMemCrc((uint8_t*) BACK_APP_ADDR, APP_SIZE_BYTES);
-            break;
+    case FLASH_MEM2:
+        return calculateFlashMemCrc((uint8_t *)BACK_APP_ADDR, APP_SIZE_BYTES);
+        break;
 
-        case FLASH_CFG:
-            return calculateFlashMemCrc((uint8_t*) (CONFIG_MEM_ADDR+4), sizeof(Config_t));
-            break;
+    case FLASH_CFG:
+        return calculateFlashMemCrc((uint8_t *)(CONFIG_MEM_ADDR + 4), sizeof(Config_t));
+        break;
     }
-    return (uint32_t) - 1;
+    return (uint32_t)-1;
 }
 
+bool FLASH_EraseMemory(FlashMemType flashType)
+{
+    uint32_t mem_offs = 0;
+    uint32_t mem_size = 0;
+    switch (flashType)
+    {
 
-bool FLASH_EraseMemory(FlashMemType flashType){
-    uint32_t mem_offs=0;
-    uint32_t mem_size=0;
-    switch (flashType) {
+    case FLASH_MEM1:
+        mem_offs = MAIN_APP_ADDR;
+        mem_size = APP_SIZE_BYTES;
+        break;
 
-        case FLASH_MEM1:
-            mem_offs = MAIN_APP_ADDR;
-            mem_size = APP_SIZE_BYTES;
-            break;
+    case FLASH_MEM2:
+        mem_offs = BACK_APP_ADDR;
+        mem_size = APP_SIZE_BYTES;
+        break;
 
-        case FLASH_MEM2:
-            mem_offs = BACK_APP_ADDR;
-            mem_size = APP_SIZE_BYTES;
-            break;
-
-        case FLASH_CFG:
-            mem_offs = CONFIG_MEM_ADDR;
-            mem_size = CONFIG_MEM_SIZE;
-            break;
+    case FLASH_CFG:
+        mem_offs = CONFIG_MEM_ADDR;
+        mem_size = CONFIG_MEM_SIZE;
+        break;
     }
     nvm_clear_error();
     uint32_t pages_count = mem_size / PAGE_SIZE_BYTES;
     uint32_t i;
-    for (i = 0; i < pages_count; i++) {
-        const uint32_t eraseAddr = mem_offs+i*PAGE_SIZE_BYTES;
-       if(nvm_erase_page(eraseAddr) == RES_ERROR) return false;
+    for (i = 0; i < pages_count; i++)
+    {
+        const uint32_t eraseAddr = mem_offs + i * PAGE_SIZE_BYTES;
+        if (nvm_erase_page(eraseAddr) == RES_ERROR)
+            return false;
     }
     return true;
 }
 
-bool FLASH_UpdateFromBackup() {
-    
-        int i;
-        nvm_clear_error();
-        const volatile uint32_t *dstMemAddr = (const uint32_t*)MAIN_APP_ADDR;
-        const volatile uint32_t *srcMemAddr = (const uint32_t*)BACK_APP_ADDR;
-        bool led_state=0;    
-        for (i = 0; i < APP_SIZE_BYTES/4; i++) {                           
-            
-            if(((uint32_t)&dstMemAddr[i] &0x3fff)==0){                
-                nvm_erase_page((uint32_t)&dstMemAddr[i]);  
-                
-                // blink with led
-                gpio_set(GPIO('G', 9), led_state);
-                led_state = !led_state;
-            }
-                                    
-            if(nvm_write_word((uint32_t)&dstMemAddr[i], srcMemAddr[i] ) == RES_ERROR){                
-                return false;
-            } 
-            clearWdt();
+bool FLASH_UpdateFromBackup()
+{
+
+    int i;
+    nvm_clear_error();
+    const volatile uint32_t *dstMemAddr = (const uint32_t *)MAIN_APP_ADDR;
+    const volatile uint32_t *srcMemAddr = (const uint32_t *)BACK_APP_ADDR;
+    bool led_state = 0;
+    for (i = 0; i < APP_SIZE_BYTES / 4; i++)
+    {
+
+        if (((uint32_t)&dstMemAddr[i] & 0x3fff) == 0)
+        {
+            nvm_erase_page((uint32_t)&dstMemAddr[i]);
+
+            // blink with led
+            gpio_set(GPIO('G', 9), led_state);
+            led_state = !led_state;
         }
-        
-        return true;
+
+        if (nvm_write_word((uint32_t)&dstMemAddr[i], srcMemAddr[i]) == RES_ERROR)
+        {
+            return false;
+        }
+        clearWdt();
+    }
+
+    return true;
 }
 
-bool FLASH_SaveSerialNumber(uint32_t s0,uint32_t s1,uint32_t s2,uint32_t s3)
+bool FLASH_SaveSerialNumber(uint32_t s0, uint32_t s1, uint32_t s2, uint32_t s3)
 {
     // TODO
     return false;
