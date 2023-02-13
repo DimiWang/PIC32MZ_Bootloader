@@ -18,7 +18,11 @@
             </sourceRootList>
             <confList>
                 <confElem>
-                    <name>LDM_TEST</name>
+                    <name>MZ1024_RELEASE</name>
+                    <type>2</type>
+                </confElem>
+                <confElem>
+                    <name>MX256_RELEASE</name>
                     <type>2</type>
                 </confElem>
             </confList>
