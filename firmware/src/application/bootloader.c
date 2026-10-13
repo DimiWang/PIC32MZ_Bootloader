@@ -14,8 +14,18 @@
 
 volatile const uint32_t __attribute__((section(".sw_version"))) VERSION = _VERSION_;
 
-volatile const uint32_t *_appVer1 = (const uint32_t *)MAIN_APP_ADDR + 0x490;
-volatile const uint32_t *_appVer2 = (const uint32_t *)BACK_APP_ADDR + 0x490;
+// Store a received byte; drop the frame if it would overflow rx_data.
+#define RX_PUT(b)                              \
+    do                                         \
+    {                                          \
+        if (rx_count < sizeof(rx_data))        \
+            rx_data[rx_count++] = (b);         \
+        else                                   \
+            rx_count = 0;                      \
+    } while (0)
+
+volatile const uint32_t *_appVer1 = (const uint32_t *)(MAIN_APP_ADDR + 0x490);
+volatile const uint32_t *_appVer2 = (const uint32_t *)(BACK_APP_ADDR + 0x490);
 
 static const uint16_t frame_crc16_table[16] =
     {
@@ -220,7 +230,7 @@ void handleFrameData(void)
 
     case READ_BOOT_INFO: // Read boot loader version info.
         tx_data[0] = READ_BOOT_INFO;
-        tx_data[1] = (VERSION & 0xff) >> 8;
+        tx_data[1] = (VERSION >> 8) & 0xff;
         tx_data[2] = (VERSION & 0xff);
         // Set the transmit frame length.
         tx_count = 2 + 1; // Boot Info Fields	+ command
@@ -296,7 +306,7 @@ void handleFrameData(void)
 
             // save application CRC
             currentConfig()->app_crc_1 = FLASH_CalculateCrc(FLASH_MEM1);
-        if (device_config_save())
+        if (device_config_save() == RES_NO_ERROR)
         {
             tx_data[0] = JMP_TO_APP;
         }
@@ -332,6 +342,13 @@ bool writeHexRecord2Flash(uint8_t *pHexRecord, uint32_t hexRecLen)
         // Determine next record starting point.
         nextRecStartPt = hexRecordSt.RecDataLen + 5;
 
+        // Reject a record that claims more bytes than remain in the frame
+        // (prevents unsigned underflow of hexRecLen and out-of-bounds reads).
+        if (nextRecStartPt > hexRecLen)
+        {
+            return false;
+        }
+
         // Decrement total hex record length by length of current record.
         hexRecLen = hexRecLen - nextRecStartPt;
 
@@ -366,7 +383,7 @@ bool writeHexRecord2Flash(uint8_t *pHexRecord, uint32_t hexRecLen)
 
                     // check if this data belongs to app memory. Doesn't matter of mainApp or backup.
                     // Lets allow backup memory update
-                    const bool addr_is_app = (progAddress >= MAIN_APP_ADDR) && (progAddress <= (MAIN_APP_ADDR + APP_SIZE_BYTES * 2));
+                    const bool addr_is_app = (progAddress >= MAIN_APP_ADDR) && (progAddress < (MAIN_APP_ADDR + APP_SIZE_BYTES * 2));
 
                     // Make sure we are not writing boot area and device configuration bits.
                     if (addr_is_app)
@@ -496,7 +513,7 @@ void BOOTLOADER_ExecuteUartUpdater()
             case SOH:
                 if (escape)
                 {
-                    rx_data[rx_count++] = byte;
+                    RX_PUT(byte);
                     escape = 0;
                 }
                 else
@@ -509,15 +526,15 @@ void BOOTLOADER_ExecuteUartUpdater()
             case EOT:
                 if (escape)
                 {
-                    rx_data[rx_count++] = byte;
+                    RX_PUT(byte);
                     escape = 0;
                 }
                 else
                 {
 
-                    uint16_t crc = (uint16_t)rx_data[rx_count - 2] | ((uint16_t)rx_data[rx_count - 1] << 8);
                     if (rx_count > 2)
                     {
+                        uint16_t crc = (uint16_t)rx_data[rx_count - 2] | ((uint16_t)rx_data[rx_count - 1] << 8);
                         const bool crc_ok = (calculateFrameCrc(&rx_data[0], rx_count - 2) == crc);
                         if (crc_ok)
                         {
@@ -535,7 +552,7 @@ void BOOTLOADER_ExecuteUartUpdater()
             case DLE:
                 if (escape)
                 {
-                    rx_data[rx_count++] = byte;
+                    RX_PUT(byte);
                     escape = 0;
                 }
                 else
@@ -543,7 +560,7 @@ void BOOTLOADER_ExecuteUartUpdater()
                 break;
 
             default:
-                rx_data[rx_count++] = byte;
+                RX_PUT(byte);
                 escape = 0;
                 break;
             }

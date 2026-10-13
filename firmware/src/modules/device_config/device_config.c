@@ -31,7 +31,7 @@ ResultError_t device_config_save(void)
     int i;
     // calculate crc for config
 
-    currentConfig()->crc = FLASH_CalculateCrc(FLASH_CFG);
+    currentConfig()->crc = calculateFlashMemCrc((const uint8_t *)&_currentConfig + 4, sizeof(Config_t) - 4);
     nvm_clear_error();
     nvm_unlock_bootmem();
     nvm_erase_page(CONFIG_MEM_ADDR);
@@ -40,7 +40,10 @@ ResultError_t device_config_save(void)
     for (i = 0; i < sizeof(Config_t) / 4; i++)
     {
         if (nvm_write_word((uint32_t)&dstMemAddr[i], srcMemAddr[i]) == RES_ERROR)
+        {
+            nvm_lock_bootmem();
             return RES_ERROR;
+        }
     }
     nvm_lock_bootmem();
 
