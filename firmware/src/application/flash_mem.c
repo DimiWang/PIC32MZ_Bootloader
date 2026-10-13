@@ -80,7 +80,7 @@ uint32_t FLASH_CalculateCrc(FlashMemType flashType)
         break;
 
     case FLASH_CFG:
-        return calculateFlashMemCrc((uint8_t *)(CONFIG_MEM_ADDR + 4), sizeof(Config_t));
+        return calculateFlashMemCrc((uint8_t *)(CONFIG_MEM_ADDR + 4), sizeof(Config_t) - 4);
         break;
     }
     return (uint32_t)-1;

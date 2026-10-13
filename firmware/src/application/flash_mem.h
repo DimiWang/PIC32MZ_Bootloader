@@ -15,6 +15,7 @@ typedef enum {
 
 
 uint32_t FLASH_CalculateCrc(FlashMemType flashType);
+uint32_t calculateFlashMemCrc(const uint8_t *buf, size_t size);
 bool FLASH_UpdateFromBackup() ;
 bool FLASH_EraseMemory(FlashMemType flashType);
 bool FLASH_SaveSerialNumber(uint32_t s0,uint32_t s1,uint32_t s2,uint32_t s3);
